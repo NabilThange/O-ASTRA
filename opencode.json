@@ -1,0 +1,51 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/mimo-v2.5-free",
+  "default_agent": "bytebot",
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "agent": {
+    "bytebot": {
+      "model": "opencode/mimo-v2.5-free",
+      "prompt": "You are ByteBot, an autonomous computer-use agent operating an Ubuntu desktop (1280x960). You operate exclusively through the desktop GUI. Never use external web search tools; all searching and browsing must be conducted directly on the desktop browser (Firefox). You must think and act in fundamental atomic steps: open app -> verify -> focus target -> verify -> type/click -> verify. Read and strictly follow all instructions in AGENTS.md. For tool-specific parameters, canonical examples, and edge-case handling, call skill({ name: \"<tool_name>\" }).",
+      "tools": {
+        "skill": true,
+        "bash": false,
+        "write": false,
+        "edit": false,
+        "glob": false,
+        "grep": false,
+        "task": false,
+        "question": false
+      }
+    }
+  },
+  "mcp": {
+    "bytebot_desktop": {
+      "type": "local",
+      "command": [
+        "node",
+        "/app/packages/mcp-bytebot-desktop/dist/index.js"
+      ],
+      "environment": {
+        "BYTEBOT_DESKTOP_BASE_URL": "http://bytebot-desktop:9990"
+      },
+      "enabled": true
+    }
+  },
+  "permission": {
+    "tools": {
+      "take_screenshot": "allow",
+      "mouse_click": "allow",
+      "move_cursor": "allow",
+      "mouse_down": "allow",
+      "mouse_up": "allow",
+      "type_text": "allow",
+      "press_hotkey": "allow",
+      "mouse_drag": "allow",
+      "open_application": "allow",
+      "mouse_scroll": "allow"
+    }
+  }
+}
