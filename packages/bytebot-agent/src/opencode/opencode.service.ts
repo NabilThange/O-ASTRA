@@ -1,4 +1,5 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional, Inject, forwardRef } from '@nestjs/common';
+import { TasksGateway } from '../tasks/tasks.gateway';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -46,6 +47,7 @@ export class OpenCodeService implements BytebotAgentService {
   constructor(
     private readonly configService: ConfigService,
     @Optional() private readonly prisma?: PrismaService,
+    @Optional() @Inject(forwardRef(() => TasksGateway)) private readonly tasksGateway?: TasksGateway,
   ) {
     this.baseUrl =
       this.configService.get<string>('OPENCODE_URL') ||
@@ -107,7 +109,7 @@ export class OpenCodeService implements BytebotAgentService {
             select: { result: true },
           });
           const currentResult = (task?.result as Record<string, any>) || {};
-          await this.prisma.task.update({
+          const updatedTask = await this.prisma.task.update({
             where: { id: taskId },
             data: {
               result: {
@@ -115,7 +117,15 @@ export class OpenCodeService implements BytebotAgentService {
                 openCodeSessionId: sessionId,
               },
             },
+            include: {
+              messages: {
+                orderBy: { createdAt: 'asc' },
+              },
+            },
           });
+          if (this.tasksGateway) {
+            this.tasksGateway.emitTaskUpdate(taskId, updatedTask);
+          }
         } catch (e: any) {
           this.logger.warn(`Could not save openCodeSessionId to task: ${e.message}`);
         }
@@ -185,8 +195,8 @@ export class OpenCodeService implements BytebotAgentService {
     // Prepend concise, high-impact computer-use custom instructions to the prompt on each turn
     const customInstructions = [
       `[CRITICAL COMPUTER-USE DIRECTIVE]:`,
-      `1. You operate exclusively on the Ubuntu desktop GUI (display :0). Never use external web search tools or APIs. If asked to search or find information, you MUST open Firefox on desktop and search on screen.`,
-      `2. Think and execute in fundamental atomic steps: open/launch app -> verify window -> focus element -> verify focus -> type/press hotkey -> verify result. Never skip intermediate verification.`,
+      `1. Desktop & Web Browsing: You operate on the Ubuntu desktop (display :0). Never use external web search tools or answer from memory without browsing. For all web searches and browsing tasks, use the headed browser tools: browser_navigate({ url }), browser_snapshot(), browser_click({ selector }), browser_type({ selector, text, pressEnter, waitNav }), browser_extract_text().`,
+      `2. Fundamental Atomic Steps: Always execute in atomic steps: navigate -> snapshot -> inspect element keys ([e1], [e2]) -> click/type -> verify new state. Never guess coordinates or element keys without verification.`,
     ].join('\n');
 
     if (parts.length > 0 && parts[0].type === 'text') {
@@ -212,15 +222,65 @@ export class OpenCodeService implements BytebotAgentService {
         };
       }
 
-      const response = await fetch(`${this.baseUrl}/session/${sessionId}/message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          parts,
-          ...(modelPayload ? { model: modelPayload } : {}),
-        }),
-        signal,
-      });
+      let streamedReasoning = '';
+      let activeReasoningId: string | null = null;
+      const sseAbortController = new AbortController();
+
+      // Start listening to OpenCode /event stream to capture reasoning tokens
+      const ssePromise = (async () => {
+        try {
+          const sseRes = await fetch(`${this.baseUrl}/event`, {
+            headers: { Accept: 'text/event-stream' },
+            signal: sseAbortController.signal,
+          });
+          if (!sseRes.body) return;
+          const reader = sseRes.body.getReader();
+          const decoder = new TextDecoder();
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value);
+            for (const line of chunk.split('\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const ev = JSON.parse(line.slice(6));
+                  if (ev.properties?.sessionID === sessionId) {
+                    if (ev.type === 'message.part.updated' && ev.properties?.part?.type === 'reasoning') {
+                      activeReasoningId = ev.properties.part.id;
+                      if (ev.properties.part.text && !streamedReasoning) {
+                        streamedReasoning = ev.properties.part.text;
+                      }
+                    }
+                    if (
+                      ev.type === 'message.part.delta' &&
+                      ev.properties?.partID === activeReasoningId &&
+                      typeof ev.properties?.delta === 'string'
+                    ) {
+                      streamedReasoning += ev.properties.delta;
+                    }
+                  }
+                } catch {}
+              }
+            }
+          }
+        } catch {}
+      })();
+
+      let response: Response;
+      try {
+        response = await fetch(`${this.baseUrl}/session/${sessionId}/message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            parts,
+            ...(modelPayload ? { model: modelPayload } : {}),
+          }),
+          signal,
+        });
+      } finally {
+        sseAbortController.abort();
+        await ssePromise.catch(() => {});
+      }
 
       if (!response.ok) {
         const errText = await response.text();
@@ -242,10 +302,13 @@ export class OpenCodeService implements BytebotAgentService {
               text: part.text,
             });
           } else if (part.type === 'reasoning' || part.type === 'thought') {
-            contentBlocks.push({
-              type: MessageContentType.Thinking,
-              thinking: part.text || part.reasoning || '',
-            } as ThinkingContentBlock);
+            const thinkingText = part.text || part.reasoning || streamedReasoning;
+            if (thinkingText.trim()) {
+              contentBlocks.push({
+                type: MessageContentType.Thinking,
+                thinking: thinkingText,
+              } as ThinkingContentBlock);
+            }
           } else if (part.type === 'tool' || part.tool) {
             contentBlocks.push({
               type: MessageContentType.ToolUse,
@@ -257,6 +320,17 @@ export class OpenCodeService implements BytebotAgentService {
             // ponytail: OpenCode finished — inject set_task_status so the processor loop exits
             openCodeFinished = true;
           }
+        }
+
+        // If OpenCode emitted streaming reasoning deltas but part.text was blank, ensure it is preserved
+        if (
+          !contentBlocks.some((b) => b.type === MessageContentType.Thinking) &&
+          streamedReasoning.trim()
+        ) {
+          contentBlocks.unshift({
+            type: MessageContentType.Thinking,
+            thinking: streamedReasoning,
+          } as ThinkingContentBlock);
         }
 
         const hasTools = contentBlocks.some(

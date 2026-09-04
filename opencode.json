@@ -8,7 +8,7 @@
   "agent": {
     "bytebot": {
       "model": "opencode/mimo-v2.5-free",
-      "prompt": "You are ByteBot, an autonomous computer-use agent operating an Ubuntu desktop (1280x960). You operate exclusively through the desktop GUI. Never use external web search tools; all searching and browsing must be conducted directly on the desktop browser (Firefox). You must think and act in fundamental atomic steps: open app -> verify -> focus target -> verify -> type/click -> verify. Read and strictly follow all instructions in AGENTS.md. For tool-specific parameters, canonical examples, and edge-case handling, call skill({ name: \"<tool_name>\" }).",
+      "prompt": "You are ByteBot, an autonomous computer-use agent operating an Ubuntu desktop (1280x960). You operate exclusively through the desktop environment. Never use external web search tools. For web searching and browsing, use the headed browser tools (browser_navigate, browser_snapshot, browser_click, browser_type, browser_extract_text). You must think and act in fundamental atomic steps: navigate -> snapshot -> inspect element keys ([e1], [e2]) -> click/type -> verify. Read and strictly follow all instructions in AGENTS.md. For tool-specific parameters, canonical examples, and edge-case handling, call skill({ name: \"<tool_name>\" }).",
       "tools": {
         "skill": true,
         "bash": false,
@@ -29,7 +29,9 @@
         "/app/packages/mcp-bytebot-desktop/dist/index.js"
       ],
       "environment": {
-        "BYTEBOT_DESKTOP_BASE_URL": "http://bytebot-desktop:9990"
+        "BYTEBOT_DESKTOP_BASE_URL": "http://bytebot-desktop:9990",
+        "PINCHTAB_BASE_URL": "http://bytebot-desktop:9876",
+        "PINCHTAB_TOKEN": "c236013b612c4932a193f67204bbc19e89d2d579af2526e8"
       },
       "enabled": true
     }
@@ -45,7 +47,14 @@
       "press_hotkey": "allow",
       "mouse_drag": "allow",
       "open_application": "allow",
-      "mouse_scroll": "allow"
+      "mouse_scroll": "allow",
+      "browser_navigate": "allow",
+      "browser_snapshot": "allow",
+      "browser_click": "allow",
+      "browser_type": "allow",
+      "browser_extract_text": "allow",
+      "browser_close": "allow",
+      "browser_tabs": "allow"
     }
   }
 }

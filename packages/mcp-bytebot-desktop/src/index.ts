@@ -5,10 +5,16 @@
  * Communicates with OpenCode via stdio JSON-RPC 2.0
  */
 
-import * as readline from 'readline';
+const readline = require('readline');
 
 const DESKTOP_BASE_URL =
   process.env.BYTEBOT_DESKTOP_BASE_URL || 'http://bytebot-desktop:9990';
+
+const PINCHTAB_BASE_URL =
+  process.env.PINCHTAB_BASE_URL || 'http://bytebot-desktop:9876';
+
+const PINCHTAB_TOKEN =
+  process.env.PINCHTAB_TOKEN || 'c236013b612c4932a193f67204bbc19e89d2d579af2526e8';
 
 const TOOLS = [
   {
@@ -183,6 +189,108 @@ const TOOLS = [
       required: ['application'],
     },
   },
+  {
+    name: 'browser_navigate',
+    description: 'Navigates the visible headed browser to a specific URL.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'URL to navigate to (e.g. "https://duckduckgo.com")' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'browser_snapshot',
+    description:
+      'Captures the interactive accessibility tree of the active web page with stable element keys ([e1], [e2], etc.). Use this to read page structure, forms, buttons, and links with 90% fewer tokens than raw DOM.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        diff: {
+          type: 'boolean',
+          description: 'If true, returns only changed elements since the last snapshot to minimize tokens',
+          default: false,
+        },
+      },
+    },
+  },
+  {
+    name: 'browser_click',
+    description:
+      'Clicks an element on the active web page using its stable key (e.g. "e1", "e5"), text search ("find:Submit"), or CSS selector.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'string',
+          description: 'Stable element key from snapshot (e.g. "e1", "e5"), text search ("find:Login"), or CSS selector',
+        },
+      },
+      required: ['selector'],
+    },
+  },
+  {
+    name: 'browser_type',
+    description:
+      'Types text into an element on the active web page using its stable key (e.g. "e1", "e5").',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'string',
+          description: 'Stable element key from snapshot (e.g. "e1", "e5") to type into',
+        },
+        text: {
+          type: 'string',
+          description: 'Text string to type into the element',
+        },
+        pressEnter: {
+          type: 'boolean',
+          description: 'Whether to press Enter after typing to submit',
+          default: false,
+        },
+      },
+      required: ['selector', 'text'],
+    },
+  },
+  {
+    name: 'browser_extract_text',
+    description:
+      'Extracts clean reader text/markdown of the web page content (articles, documentation, search results) without boilerplate navigation.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'browser_close',
+    description: 'Closes the current browser tab.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'browser_tabs',
+    description:
+      'Inspects open browser tabs (IDs, titles, URLs, active status) or switches focus to a specific tab by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'focus'],
+          description: 'Action to perform: "list" to view all open tabs, or "focus" to bring a tab to the foreground',
+          default: 'list',
+        },
+        tabId: {
+          type: 'string',
+          description: 'The tab ID to focus when action is "focus"',
+        },
+      },
+    },
+  },
 ];
 
 async function callDesktopApi(action: string, payload: any = {}): Promise<any> {
@@ -195,6 +303,38 @@ async function callDesktopApi(action: string, payload: any = {}): Promise<any> {
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(`Desktop API error (${res.status}): ${errorText || res.statusText}`);
+  }
+
+  const text = await res.text();
+  if (!text || !text.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { text };
+  }
+}
+
+async function callPinchTabApi(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
+  const url = `${PINCHTAB_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (PINCHTAB_TOKEN) {
+    headers['Authorization'] = `Bearer ${PINCHTAB_TOKEN}`;
+  }
+  const options: RequestInit = {
+    method,
+    headers,
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  };
+
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`PinchTab API error (${res.status}): ${errorText || res.statusText}`);
   }
 
   const text = await res.text();
@@ -352,6 +492,171 @@ async function handleToolCall(name: string, args: any): Promise<any> {
           },
         ],
       };
+    }
+
+    case 'browser_navigate': {
+      const { url } = args;
+      const navResult = await callPinchTabApi('/navigate', 'POST', { url });
+      if (navResult?.tabId) {
+        try {
+          await callPinchTabApi('/tab', 'POST', {
+            action: 'focus',
+            tabId: navResult.tabId,
+          });
+        } catch {}
+      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Navigated browser to "${url}" (Tab ID: ${navResult?.tabId || 'active'}). Tab has been brought to the foreground. Call browser_snapshot() to inspect page elements.`,
+          },
+        ],
+      };
+    }
+
+    case 'browser_snapshot': {
+      const query = args?.diff ? '?diff=true' : '?filter=interactive';
+      const snapshot = await callPinchTabApi(`/snapshot${query}`, 'GET');
+      if (snapshot && Array.isArray(snapshot.nodes)) {
+        const formattedNodes = snapshot.nodes
+          .map((n: any) => {
+            const parts = [`[${n.ref}] ${n.role || 'element'}`];
+            if (n.name) parts.push(`"${n.name}"`);
+            if (n.value) parts.push(`value="${n.value}"`);
+            if (!n.name && n.text) parts.push(`text="${n.text.slice(0, 100)}"`);
+            return parts.join(' ');
+          })
+          .join('\n');
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Page Accessibility Tree Snapshot (${snapshot.count || snapshot.nodes.length} interactive elements):\n\n${formattedNodes || 'No interactive elements detected on page.'}`,
+            },
+          ],
+        };
+      }
+      const textTree =
+        typeof snapshot === 'string'
+          ? snapshot
+          : JSON.stringify(snapshot, null, 2);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Page Accessibility Tree Snapshot:\n\n${textTree}`,
+          },
+        ],
+      };
+    }
+
+    case 'browser_click': {
+      const { selector } = args;
+      await callPinchTabApi('/action', 'POST', {
+        kind: 'click',
+        selector,
+        waitNav: true,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Clicked element "${selector}". Call browser_snapshot() to observe page state.`,
+          },
+        ],
+      };
+    }
+
+    case 'browser_type': {
+      const { selector, text, pressEnter } = args;
+      await callPinchTabApi('/action', 'POST', {
+        kind: 'type',
+        selector,
+        text,
+        value: text,
+      });
+      if (pressEnter) {
+        await callPinchTabApi('/action', 'POST', {
+          kind: 'press',
+          key: 'Enter',
+          waitNav: true,
+        });
+      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Typed "${text}" into element "${selector}"${pressEnter ? ' and pressed Enter' : ''}.`,
+          },
+        ],
+      };
+    }
+
+    case 'browser_extract_text': {
+      const result = await callPinchTabApi('/text', 'GET');
+      const textContent =
+        typeof result === 'string'
+          ? result
+          : result?.text || result?.content || JSON.stringify(result);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: textContent,
+          },
+        ],
+      };
+    }
+
+    case 'browser_close': {
+      await callPinchTabApi('/tab/close', 'POST', {});
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'Browser tab closed.',
+          },
+        ],
+      };
+    }
+
+    case 'browser_tabs': {
+      const action = args?.action || 'list';
+      if (action === 'focus') {
+        const tabId = args?.tabId;
+        if (!tabId) {
+          throw new Error('tabId is required when action is "focus"');
+        }
+        await callPinchTabApi('/tab', 'POST', {
+          action: 'focus',
+          tabId,
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Switched browser focus to tab "${tabId}".`,
+            },
+          ],
+        };
+      } else {
+        const result = await callPinchTabApi('/tabs', 'GET');
+        const tabsList = (result?.tabs || [])
+          .map(
+            (t: any) =>
+              `- [${t.id}] "${t.title}" (${t.url}) [status: ${t.status || 'inactive'}]`,
+          )
+          .join('\n');
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Open Browser Tabs (${result?.tabs?.length || 0}):\n${tabsList || 'No open tabs.'}`,
+            },
+          ],
+        };
+      }
     }
 
     default:

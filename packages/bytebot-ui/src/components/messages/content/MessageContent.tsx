@@ -4,6 +4,7 @@ import {
   isTextContentBlock,
   isImageContentBlock,
   isComputerToolUseContentBlock,
+  isToolUseContentBlock,
   isToolResultContentBlock,
   isThinkingContentBlock,
 } from "@bytebot/shared";
@@ -12,6 +13,12 @@ import { ImageContent } from "./ImageContent";
 import { ComputerToolContent } from "./ComputerToolContent";
 import { ErrorContent } from "./ErrorContent";
 import { ThinkingContent } from "./ThinkingContent";
+import {
+  Tool,
+  ToolHeader,
+  ToolContent,
+  ToolInput,
+} from "@/components/ai-elements";
 
 interface MessageContentProps {
   content: MessageContentBlock[];
@@ -67,6 +74,20 @@ export function MessageContent({
 
           {isComputerToolUseContentBlock(block) && (
             <ComputerToolContent block={block} isTakeOver={isTakeOver} />
+          )}
+
+          {isToolUseContentBlock(block) && !isComputerToolUseContentBlock(block) && (
+            <Tool defaultOpen={false} className="border-bytebot-bronze-light-6 bg-bytebot-bronze-light-2/50 text-xs my-2">
+              <ToolHeader
+                type="dynamic-tool"
+                toolName={block.name}
+                title={block.name}
+                state="output-available"
+              />
+              <ToolContent>
+                {block.input && <ToolInput input={block.input} />}
+              </ToolContent>
+            </Tool>
           )}
 
           {isToolResultContentBlock(block) && block.is_error && (
