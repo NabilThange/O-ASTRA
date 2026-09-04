@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Image from "next/image";
 import { Header } from "@/components/layout/Header";
+import { AuraBot } from "@/components/aura/AuraBot";
 import { ChatInput } from "@/components/messages/ChatInput";
 import { useRouter } from "next/navigation";
 import {
@@ -15,24 +15,6 @@ import {
 import { startTask } from "@/utils/taskUtils";
 import { Model } from "@/types";
 import { TaskList } from "@/components/tasks/TaskList";
-
-interface StockPhotoProps {
-  src: string;
-  alt?: string;
-}
-
-const StockPhoto: React.FC<StockPhotoProps> = ({
-  src,
-  alt = "Decorative image",
-}) => {
-  return (
-    <div className="h-full w-full overflow-hidden rounded-lg bg-white">
-      <div className="relative h-full w-full">
-        <Image src={src} alt={alt} fill className="object-cover" priority />
-      </div>
-    </div>
-  );
-};
 
 interface FileWithBase64 {
   name: string;
@@ -47,6 +29,7 @@ export default function Home() {
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<FileWithBase64[]>([]);
+  const [isTaskInputFocused, setIsTaskInputFocused] = useState(false);
   const router = useRouter();
   const [activePopoverIndex, setActivePopoverIndex] = useState<number | null>(
     null,
@@ -159,6 +142,7 @@ export default function Home() {
                   onInputChange={setInput}
                   onSend={handleSend}
                   onFileUpload={handleFileUpload}
+                  onFocusChange={setIsTaskInputFocused}
                   minLines={3}
                 />
                 <div className="mt-2">
@@ -192,10 +176,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Stock photo area - centered in its grid cell */}
+          {/* Aura Bot area - centered in its grid cell */}
           <div className="flex items-center justify-center px-6 pt-6">
-            <div className="aspect-square h-full w-full max-w-md xl:max-w-2xl">
-              <StockPhoto src="/stock-1.png" alt="Bytebot stock image" />
+            <div className="flex aspect-square h-full w-full max-w-md items-center justify-center xl:max-w-2xl">
+              <AuraBot isTaskInputFocused={isTaskInputFocused} />
             </div>
           </div>
         </div>
@@ -217,6 +201,7 @@ export default function Home() {
                   onInputChange={setInput}
                   onSend={handleSend}
                   onFileUpload={handleFileUpload}
+                  onFocusChange={setIsTaskInputFocused}
                   minLines={3}
                 />
                 <div className="mt-2">

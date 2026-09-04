@@ -19,6 +19,7 @@ interface ChatInputProps {
   onFileUpload?: (files: FileWithBase64[]) => void;
   minLines?: number;
   placeholder?: string;
+  onFocusChange?: (focused: boolean) => void;
 }
 
 export function ChatInput({
@@ -29,6 +30,7 @@ export function ChatInput({
   onFileUpload,
   minLines = 1,
   placeholder = "Give Bytebot a task to work on...",
+  onFocusChange,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -209,6 +211,8 @@ export function ChatInput({
           )}
           disabled={isLoading}
           rows={1}
+          onFocus={() => onFocusChange?.(true)}
+          onBlur={() => onFocusChange?.(false)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
