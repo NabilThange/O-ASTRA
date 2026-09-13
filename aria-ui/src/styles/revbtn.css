@@ -1,0 +1,34 @@
+.link-line {
+    width: min-content;
+    height: 1.25rem;
+    min-height: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.rev-top {
+    margin-top: -1.12rem;
+}
+
+.rev-link {
+    display: block;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Trigger animation when hovering over parent group */
+.group:hover .link-line .rev-link.rev-top {
+    transform: translateY(19px);
+}
+
+.group:hover .link-line .rev-link:not(.rev-top) {
+    transform: scale(1.1) translateY(20px);
+}
+
+/* Keep old hover for backwards compatibility with other uses */
+.link-line:hover .rev-link.rev-top {
+    transform: translateY(19px);
+}
+
+.link-line:hover .rev-link:not(.rev-top) {
+    transform: scale(1.1) translateY(20px);
+}

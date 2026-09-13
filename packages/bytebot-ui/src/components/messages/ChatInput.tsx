@@ -29,7 +29,7 @@ export function ChatInput({
   onSend,
   onFileUpload,
   minLines = 1,
-  placeholder = "Give Bytebot a task to work on...",
+  placeholder = "Give Aria a task to work on...",
   onFocusChange,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);

@@ -1,0 +1,42 @@
+.footer-title-section {
+    position: relative;
+    width: 100%;
+    min-height: 45vh;
+    border-top: 1px solid #33302c;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.footer-title {
+    width: 100%;
+    text-align: center;
+    z-index: 2;
+    overflow: hidden;
+    padding-bottom: 2rem;
+}
+
+.footer-title h1 {
+    position: relative;
+    line-height: 0.9;
+    color: #f4efe7;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.ftChar {
+    display: inline-block;
+    overflow: hidden;
+    position: relative;
+}
+
+.ftChar > span {
+    display: inline-block;
+    will-change: transform;
+}
+
+.footer-title h1 sub {
+    font-size: 0.35em;
+    vertical-align: super;
+}

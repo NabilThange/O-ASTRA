@@ -1,0 +1,37 @@
+# Development Dockerfile with Hot Reload
+FROM node:20-alpine
+
+# Declare build arguments
+ARG ARIA_AGENT_BASE_URL
+ARG ARIA_DESKTOP_VNC_URL
+
+# Set environment variables
+ENV ARIA_AGENT_BASE_URL=${ARIA_AGENT_BASE_URL}
+ENV ARIA_DESKTOP_VNC_URL=${ARIA_DESKTOP_VNC_URL}
+ENV NODE_ENV=development
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files first (for layer caching)
+COPY aria-ui/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy shared package (needed for types)
+COPY shared/ /app-shared/
+WORKDIR /app-shared
+RUN npm install
+
+# Back to app directory
+WORKDIR /app
+
+# The rest of the code will be mounted as a volume
+# This allows hot reload without rebuilding
+
+# Expose Next.js dev server port
+EXPOSE 9992
+
+# Start dev server (will be overridden by docker-compose command)
+CMD ["npm", "run", "dev"]

@@ -1,13 +1,13 @@
-# ByteBot Architecture — How This Fits Together
+# Aria Architecture — How This Fits Together
 
 This folder is a drop-in replacement for the current monolithic prompt setup. It splits
-one 60+ line block into three tiers that load at different times, so ByteBot only pays
+one 60+ line block into three tiers that load at different times, so Aria only pays
 the "context cost" of a given piece of knowledge when it actually needs it.
 
 ```
 opencode.json                              ← loaded once, at session start
 AGENTS.md                                  ← loaded once, at session start (referenced BY opencode.json)
-.opencode/skills/<tool_name>/SKILL.md      ← loaded on demand, only when ByteBot calls skill({name:...})
+.opencode/skills/<tool_name>/SKILL.md      ← loaded on demand, only when Aria calls skill({name:...})
 ```
 
 ## Why three tiers instead of one file
@@ -29,7 +29,7 @@ This is the direct fix for your first two pain points:
 
 The other two pain points are fixed by *content*, not structure:
 - **Blind/hallucinated clicks** → the mandatory **Predict** step in AGENTS.md §2 forces
-  ByteBot to state an expected outcome before acting, and to compare against it
+  Aria to state an expected outcome before acting, and to compare against it
   afterward — a vague "click and see" pattern can't satisfy that step.
 - **Looping on failure** → AGENTS.md §5 requires a *diagnosis* and a *changed action*
   before any retry, with a hard budget of 2 diagnosed retries before the agent stops and
@@ -46,12 +46,12 @@ to `AGENTS.md`, plus the existing MCP server wiring for `mcp-bytebot-desktop`.
 
 ## How AGENTS.md hands off to the SKILL.md files
 
-AGENTS.md never contains tool-specific detail — it only tells ByteBot *when* to go get
+AGENTS.md never contains tool-specific detail — it only tells Aria *when* to go get
 it (§6: first use of a tool this session, a failed call, an uncertain parameter, or a
-non-routine use of a tool it already knows). ByteBot then calls `skill({ name: "<tool>" })`
+non-routine use of a tool it already knows). Aria then calls `skill({ name: "<tool>" })`
 which loads the matching file from `.opencode/skills/<tool_name>/SKILL.md` into context
 for that moment, and it falls back out of context once it's no longer needed. Every
-SKILL.md follows the same six-section template (see `SKILL_TEMPLATE.md`), so ByteBot
+SKILL.md follows the same six-section template (see `SKILL_TEMPLATE.md`), so Aria
 always knows where to look for a given kind of information without re-reading the whole
 file top to bottom.
 
@@ -60,7 +60,7 @@ practice — agents sometimes skip consulting a skill file even when they should
 because nothing forces the call the way a always-loaded instruction does. AGENTS.md §6
 tries to reduce this by naming concrete trigger conditions ("first use," "a call just
 failed," "you're unsure of a parameter") rather than leaving it to vague judgment — but
-if you notice ByteBot guessing at parameters instead of checking the relevant SKILL.md,
+if you notice Aria guessing at parameters instead of checking the relevant SKILL.md,
 that's the thing to tighten first, e.g. by making the trigger conditions in §6 even more
 explicit, or by having failed tool calls return an error message that itself says
 "consult skill(<tool_name>) before retrying."

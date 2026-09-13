@@ -17,6 +17,16 @@ services:
       - "9990:9990" # bytebotd service & noVNC
     environment:
       - DISPLAY=:0
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-onboarding@resend.dev}
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8192M
+        reservations:
+          cpus: '1.0'
+          memory: 4096M
     networks:
       - bytebot-network
 
@@ -78,12 +88,15 @@ services:
       - MIMO_API_KEY=${MIMO_API_KEY}
       - MIMO_BASE_URL=${MIMO_BASE_URL}
       - BYTEBOT_DESKTOP_BASE_URL=http://bytebot-desktop:9990
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-onboarding@resend.dev}
     depends_on:
       - bytebot-desktop
     volumes:
       - ../opencode.json:/app/opencode.json
       - ../AGENTS.md:/app/AGENTS.md
       - ../.opencode:/app/.opencode
+      - ../packages/mcp-bytebot-desktop:/app/packages/mcp-bytebot-desktop
     networks:
       - bytebot-network
 
@@ -104,6 +117,7 @@ services:
       - NODE_ENV=production
       - BYTEBOT_AGENT_BASE_URL=${BYTEBOT_AGENT_BASE_URL:-http://bytebot-agent:9991}
       - BYTEBOT_DESKTOP_VNC_URL=${BYTEBOT_DESKTOP_VNC_URL:-http://bytebot-desktop:9990/websockify}
+      - ASSEMBLYAI_API_KEY=${ASSEMBLYAI_API_KEY}
     depends_on:
       - bytebot-agent
     networks:

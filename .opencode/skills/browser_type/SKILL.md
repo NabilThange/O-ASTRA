@@ -20,9 +20,9 @@ Types text into an input field or textarea identified by its PinchTab accessibil
 ## Canonical Examples
 - **Good (Search & Submit):**
   ```json
-  browser_type({ "selector": "e9", "text": "ByteBot AI", "pressEnter": true, "waitNav": true })
+  browser_type({ "selector": "e9", "text": "Aria AI", "pressEnter": true, "waitNav": true })
   ```
-  Types "ByteBot AI" into textbox `e9`, presses Enter, and waits for the search results page to load.
+  Types "Aria AI" into textbox `e9`, presses Enter, and waits for the search results page to load.
 
 ## Common Pitfalls
 - Setting `waitNav: true` when `pressEnter: false`, which may cause an unnecessary wait timeout.

@@ -75,4 +75,20 @@ describe('OpenCode & Thinking Content Seams', () => {
       }
     });
   });
+
+  describe('ARIA_FIRST_PROMPT_PREAMBLE', () => {
+    it('should contain Aria computer-use instructions, AGENTS.md, and skills list without /init', () => {
+      const { ARIA_FIRST_PROMPT_PREAMBLE } = require('./opencode.service');
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).not.toContain('/init');
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).toMatch(/^You are Aria/);
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).toContain('You are Aria, an autonomous computer-use agent.');
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).toContain('AGENTS.md');
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).toContain('browser_navigate');
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).toContain('take_screenshot');
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).toContain('skill({ name: "<tool_name>" })');
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).toContain('3d_model');
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).toContain('F11');
+      expect(ARIA_FIRST_PROMPT_PREAMBLE).toContain('Alt_L');
+    });
+  });
 });

@@ -9,14 +9,9 @@ export default function DesktopPage() {
     <div className="flex h-screen flex-col overflow-hidden">
       <Header />
 
-      <main className="m-2 flex-1 overflow-hidden px-2 py-4">
-        <div className="flex h-full items-center justify-center">
-          {/* Main container */}
-          <div className="w-[60%]">
-            <DesktopContainer viewOnly={false} status="live_view">
-              {/* No action buttons for desktop page */}
-            </DesktopContainer>
-          </div>
+      <main className="flex-1 overflow-hidden p-2 sm:p-4">
+        <div className="flex h-full w-full items-center justify-center">
+          <DesktopContainer viewOnly={false} status="live_view" className="shadow-sm rounded-xl border border-neutral-200" />
         </div>
       </main>
     </div>

@@ -510,12 +510,17 @@ V, W, X, Y, Z
     parameters: z.object({
       application: z.enum([
         'firefox',
-        '1password',
-        'thunderbird',
         'vscode',
         'terminal',
         'desktop',
         'directory',
+        'mousepad',
+        'calculator',
+        'evince',
+        'paint',
+        'calc',
+        '1password',
+        'thunderbird',
       ]),
     }),
   })
@@ -524,12 +529,17 @@ V, W, X, Y, Z
   }: {
     application:
       | 'firefox'
-      | '1password'
-      | 'thunderbird'
       | 'vscode'
       | 'terminal'
       | 'desktop'
-      | 'directory';
+      | 'directory'
+      | 'mousepad'
+      | 'calculator'
+      | 'evince'
+      | 'paint'
+      | 'calc'
+      | '1password'
+      | 'thunderbird';
   }) {
     try {
       await this.computerUse.action({ action: 'application', application });

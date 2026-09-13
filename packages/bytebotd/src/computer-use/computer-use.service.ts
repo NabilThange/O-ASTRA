@@ -291,6 +291,11 @@ export class ComputerUseService {
       vscode: 'code',
       terminal: 'xfce4-terminal',
       directory: 'thunar',
+      mousepad: 'mousepad',
+      calculator: 'gnome-calculator',
+      evince: 'evince',
+      paint: 'kolourpaint',
+      calc: 'libreoffice --calc',
     };
 
     const processMap: Record<Application, string> = {
@@ -301,6 +306,11 @@ export class ComputerUseService {
       terminal: 'xfce4-terminal.Xfce4-Terminal',
       directory: 'Thunar',
       desktop: 'xfdesktop.Xfdesktop',
+      mousepad: 'Mousepad',
+      calculator: 'gnome-calculator',
+      evince: 'evince',
+      paint: 'kolourpaint',
+      calc: 'soffice.bin',
     };
 
     // check if the application is already open using wmctrl -lx

@@ -1,0 +1,35 @@
+/* Marquee Text Component Styles */
+
+.marquee-text-container {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    width: 100%;
+}
+
+.marquee-text-move {
+    display: flex;
+    background-color: transparent;
+    width: max-content;
+}
+
+.marquee-text-marquee {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 3vw;
+    padding-right: 3vw;
+}
+
+.marquee-text-marquee h1 {
+    font-size: 11vw;
+    color: #f4efe7;
+    font-weight: 500;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.star-rotate {
+    display: inline-block;
+    margin-left: 0.5rem;
+}

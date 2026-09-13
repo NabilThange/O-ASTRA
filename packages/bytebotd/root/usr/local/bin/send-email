@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""
+CLI utility to send emails via Resend HTTP API.
+Can be run by scripts, users, or agents directly on the desktop VM.
+"""
+
+import argparse
+import base64
+import os
+import sys
+import requests
+
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev")
+RESEND_URL = "https://api.resend.com/emails"
+
+def main():
+    parser = argparse.ArgumentParser(description="Send emails with attachments using Resend.")
+    parser.add_argument("--to", required=True, help="Recipient email address")
+    parser.add_argument("--from", dest="from_addr", default=None, help="Sender email address")
+    parser.add_argument("--subject", required=True, help="Email subject")
+    parser.add_argument("--body", help="Email body (plain text or HTML)")
+    parser.add_argument("--body-file", help="Path to file containing email body")
+    parser.add_argument("--attachment", action="append", default=[], help="File path to attach (can be specified multiple times)")
+    args = parser.parse_args()
+
+    if not RESEND_API_KEY:
+        print("ERROR: RESEND_API_KEY environment variable is not set.", file=sys.stderr)
+        sys.exit(1)
+
+    sender = args.from_addr or RESEND_FROM_EMAIL
+
+    if args.body_file:
+        if not os.path.exists(args.body_file):
+            print(f"ERROR: Body file not found: {args.body_file}", file=sys.stderr)
+            sys.exit(1)
+        with open(args.body_file, "r", encoding="utf-8", errors="replace") as f:
+            body_content = f.read()
+    elif args.body:
+        body_content = args.body
+    else:
+        print("ERROR: Either --body or --body-file must be provided.", file=sys.stderr)
+        sys.exit(1)
+
+    payload = {
+        "from": sender,
+        "to": [args.to],
+        "subject": args.subject,
+        "html": body_content,
+    }
+
+    if args.attachment:
+        attachments = []
+        for path in args.attachment:
+            if not os.path.exists(path):
+                print(f"ERROR: Attachment file not found: {path}", file=sys.stderr)
+                sys.exit(1)
+            with open(path, "rb") as f:
+                content = base64.b64encode(f.read()).decode("utf-8")
+            attachments.append({
+                "filename": os.path.basename(path),
+                "content": content,
+            })
+        payload["attachments"] = attachments
+
+    try:
+        resp = requests.post(
+            RESEND_URL,
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+            json=payload,
+            timeout=30,
+        )
+    except Exception as e:
+        print(f"ERROR: Network error communicating with Resend: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if resp.status_code in (200, 201):
+        data = resp.json()
+        print(f"SUCCESS: Email sent successfully, id={data.get('id')}")
+        sys.exit(0)
+    else:
+        print(f"FAILURE: HTTP {resp.status_code} - {resp.text}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

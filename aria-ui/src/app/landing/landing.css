@@ -1,0 +1,345 @@
+/* ============================================
+   LANDING PAGE DEDICATED STYLES
+   ============================================ */
+
+/* Landing page CSS variables - isolated from global tokens */
+:root {
+  --landing-bg-dark: #181717;
+  --landing-bg-brown: #2b2825;
+  --landing-text-light: #f4efe7;
+  --landing-text-muted: #b1a696;
+  --landing-text-brown: #2a2725;
+  --landing-border: #4f4b48;
+}
+
+/* Landing page container - isolated from other pages */
+.landing-page-wrapper {
+  background-color: var(--landing-bg-dark) !important;
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Landing layout root */
+.landing-layout-root {
+  background-color: var(--landing-bg-dark) !important;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Force all parent elements to have dark background when landing page is present */
+.landing-page-wrapper,
+.landing-page-wrapper * {
+  box-sizing: border-box;
+}
+
+/* Ensure body and html have dark background */
+body:has(.landing-page-wrapper),
+html:has(.landing-page-wrapper),
+body:has(.landing-layout-root),
+html:has(.landing-layout-root) {
+  background-color: var(--landing-bg-dark) !important;
+  min-height: 100vh !important;
+}
+
+.aria-landing {
+  background-color: var(--landing-bg-dark) !important;
+  font-family: "Inter", sans-serif;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Remove all margins from sections to prevent gaps */
+.aria-landing > section,
+.aria-landing > div {
+  margin: 0 !important;
+}
+
+/* Force ALL divs within landing page to be dark (except those with explicit backgrounds) */
+.landing-page-wrapper div:not([style*="background"]),
+.aria-landing div:not([style*="background"]) {
+  background-color: transparent;
+}
+
+/* Force all GSAP pin-spacer elements to be dark */
+.landing-page-wrapper .pin-spacer,
+.aria-landing .pin-spacer,
+.pin-spacer {
+  background-color: var(--landing-bg-dark) !important;
+}
+
+/* Force all wrapper divs to be dark */
+.landing-page-wrapper > div,
+.aria-landing > div {
+  background-color: var(--landing-bg-dark);
+}
+
+/* Marquee container background */
+.marquee-text-container {
+  background-color: var(--landing-bg-dark) !important;
+}
+
+/* Sticky spacer */
+.sticky-spacer {
+  background-color: var(--landing-bg-dark) !important;
+}
+
+/* Pin container */
+.pin-con {
+  background-color: var(--landing-bg-dark) !important;
+}
+
+/* Marquee container none */
+.marquee-con-none {
+  background-color: var(--landing-bg-dark) !important;
+}
+
+/* Sticky cols wrapper */
+.sticky-cols-wrapper {
+  background-color: var(--landing-bg-dark) !important;
+}
+
+/* Footer section - ensure it's always dark */
+section.w-screen.h-dvh.px-6,
+section[class*="px-6"][class*="mt-10"] {
+  background-color: var(--landing-bg-dark) !important;
+}
+
+/* Ensure all landing page sections inherit dark background */
+.aria-landing > section,
+.aria-landing > div {
+  background-color: var(--landing-bg-dark);
+}
+
+/* All sections within landing page wrapper */
+.landing-page-wrapper section,
+.aria-landing section {
+  background-color: var(--landing-bg-dark);
+}
+
+.aria-landing .hero-section {
+  background-color: var(--landing-bg-dark);
+}
+
+.aria-landing .welcome-section {
+  background-color: var(--landing-bg-dark);
+}
+
+.aria-landing .choose-section {
+  background: linear-gradient(
+    to bottom,
+    var(--landing-bg-dark) 0%,
+    var(--landing-bg-dark) 50%,
+    #1f1d1b 65%,
+    #1f1d1b 75%,
+    #1f1d1b 85%,
+    #1f1d1b 90%,
+    var(--landing-bg-brown) 100%
+  );
+}
+
+.aria-landing .gallery-page4 {
+  background-color: var(--landing-bg-brown);
+}
+
+.aria-landing .activities-section {
+  background-color: var(--landing-bg-dark);
+}
+
+.aria-landing .showcase-section {
+  background-color: var(--landing-bg-dark);
+}
+
+.aria-landing .feedback-section {
+  background-color: var(--landing-bg-dark);
+}
+
+.aria-landing .footer-banner-section {
+  background-color: var(--landing-bg-dark);
+}
+
+/* Glassmorphism card effect */
+.glassEffect {
+  -webkit-backdrop-filter: blur(5px) saturate(100%);
+  backdrop-filter: blur(5px) saturate(100%);
+  background-color: rgba(237, 240, 245, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+.hero-bg-img {
+  background-image: url("/aria-assets/cap11.png");
+  background-repeat: no-repeat;
+  object-fit: cover;
+}
+
+/* --------------- Welcome Section Styles -------------- */
+.text-darkBrown {
+  color: #2a2725;
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  line-height: 1.05;
+}
+
+.clip-text-welcome {
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #f4efe7;
+  clip-path: inset(0 0 100% 0);
+  white-space: nowrap;
+  transition: none;
+}
+
+@media (max-width: 768px) {
+  .responsive-mobile {
+    position: absolute;
+    top: 33%;
+  }
+}
+
+/* -------------- Choose Section Styles ----------------- */
+.choose-section {
+  background: linear-gradient(
+    to bottom,
+    #181717 0%,
+    #181717 50%,
+    #1f1d1b 65%,
+    #1f1d1b 75%,
+    #1f1d1b 85%,
+    #1f1d1b 90%,
+    #2b2825 100%
+  );
+}
+
+.choose-title-break {
+  color: #181717;
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.choose-title-clip {
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #f4efe7;
+  clip-path: inset(100% 0 0 0);
+  white-space: wrap;
+  transition: none;
+  z-index: 100;
+}
+
+.title-part {
+  overflow: hidden;
+}
+
+/* ------------------ Sticky Section Style ------------------- */
+.sticky-cols {
+  padding: 0rem;
+}
+
+.sticky-cols .col {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  will-change: transform;
+}
+
+.sticky-cols .col h1 {
+  color: #b1a696;
+  width: 60%;
+}
+
+.sticky-cols .col p {
+  color: #b1a696;
+  width: auto;
+}
+
+.sticky-cols .col-2 {
+  scale: 1;
+  transform: translateX(100%);
+}
+
+.sticky-cols .col .col-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sticky-cols .col-content,
+.sticky-cols .col-img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0.5rem;
+}
+
+.sticky-cols .col-3 {
+  transform: translateX(100%) translateY(100%);
+  padding: 0.5rem;
+}
+
+.sticky-cols .col-4 {
+  transform: translateX(100%) translateY(100%);
+}
+
+.sticky-cols .col-content-wrapper {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sticky-cols .col-content-wrapper,
+.sticky-cols .col-img-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #2a2725;
+  border-radius: 3rem;
+  overflow: hidden;
+}
+
+.sticky-cols .col-content-wrapper-2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sticky-cols .col-img-1,
+.sticky-cols .col-img-2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sticky-cols .col-img-2 {
+  clip-path: polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%);
+  transform: scale(1);
+}
+
+.sticky-cols .line {
+  overflow: hidden;
+}
+
+.sticky-cols .line span {
+  display: block;
+  will-change: transform;
+}
+
+/* Aria subtitle styling */
+.choose-subtitle {
+  color: #b1a696;
+}

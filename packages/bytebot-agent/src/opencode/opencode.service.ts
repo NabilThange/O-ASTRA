@@ -38,11 +38,49 @@ export function extractNewTurnMessages(messages: Message[]): Message[] {
   return messages.slice(lastAssistantIndex + 1);
 }
 
+export const ARIA_FIRST_PROMPT_PREAMBLE = `You are Aria, an autonomous computer-use agent.
+Please read and follow all instructions in AGENTS.md.
+
+Before your first action, take a screenshot to orient yourself to current screen state.
+
+Available skills in .opencode/skills/ (<tool_name>/SKILL.md), grouped by purpose:
+
+Desktop control:
+- desktop, open_application, take_screenshot
+- mouse_click, move_cursor, mouse_down, mouse_up, mouse_drag, mouse_scroll
+- type_text, press_hotkey
+
+Browser (use for ANY web content instead of desktop clicks or external APIs):
+- browser_navigate, browser_snapshot, browser_click, browser_type
+- browser_extract_text, browser_close, browser_tabs
+
+Communication:
+- send_email
+
+3D modeling & CAD:
+- 3d_model (Partwright Studio CAD at https://www.partwrightstudio.com/editor, JS & OpenSCAD, non-generic geometry, 3MF export)
+
+Before using any tool for the first time this session, call skill({ name: "<tool_name>" }) to confirm exact parameter syntax — do not guess coordinates, selectors, or argument formats.
+
+Window Management:
+Try to use most applications in full screen or maximized state for clear visibility and accurate targeting.
+To make any active window full screen or maximized, use press_hotkey:
+- Fullscreen: press_hotkey({ keys: ["F11"] }) (works in Firefox, Terminal, Document Viewer, etc.)
+- Maximize window: press_hotkey({ keys: ["Alt_L", "F10"] }) (XFCE toggle maximize shortcut)
+
+For any task requiring more than 2 distinct actions: first output a short numbered plan, then execute one step at a time, verifying each with a screenshot before moving to the next.
+
+If a task involves sending, deleting, submitting, or purchasing anything irreversible, state your intended action and wait for confirmation before executing.
+
+User Prompt:
+`;
+
 @Injectable()
 export class OpenCodeService implements BytebotAgentService {
   private readonly logger = new Logger(OpenCodeService.name);
   private readonly baseUrl: string;
   private readonly sessions = new Map<string, string>();
+  private readonly initializedSessions = new Set<string>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -192,16 +230,30 @@ export class OpenCodeService implements BytebotAgentService {
 
     const parts = this.formatMessagesToParts(turnMessages.length > 0 ? turnMessages : messages);
 
-    // Prepend concise, high-impact computer-use custom instructions to the prompt on each turn
+    // Inject initialization preamble for Aria on the user's first prompt ONLY
+    const isFirstPrompt = !hasPriorAssistantTurn && !this.initializedSessions.has(sessionId);
+    if (isFirstPrompt) {
+      this.initializedSessions.add(sessionId);
+      const firstTextPart = parts.find((p) => p.type === 'text');
+      if (firstTextPart) {
+        const userContent = firstTextPart.text.startsWith('[USER]: ')
+          ? firstTextPart.text.replace('[USER]: ', '')
+          : firstTextPart.text;
+        firstTextPart.text = `${ARIA_FIRST_PROMPT_PREAMBLE}${userContent}`;
+      } else {
+        parts.unshift({
+          type: 'text',
+          text: ARIA_FIRST_PROMPT_PREAMBLE.trim(),
+        });
+      }
+    }
+
+    // Keep computer-use guidance in OpenCode's system channel so it is not shown as user content.
     const customInstructions = [
       `[CRITICAL COMPUTER-USE DIRECTIVE]:`,
       `1. Desktop & Web Browsing: You operate on the Ubuntu desktop (display :0). Never use external web search tools or answer from memory without browsing. For all web searches and browsing tasks, use the headed browser tools: browser_navigate({ url }), browser_snapshot(), browser_click({ selector }), browser_type({ selector, text, pressEnter, waitNav }), browser_extract_text().`,
       `2. Fundamental Atomic Steps: Always execute in atomic steps: navigate -> snapshot -> inspect element keys ([e1], [e2]) -> click/type -> verify new state. Never guess coordinates or element keys without verification.`,
     ].join('\n');
-
-    if (parts.length > 0 && parts[0].type === 'text') {
-      parts[0].text = `${customInstructions}\n\n${parts[0].text || ''}`;
-    }
 
     try {
       this.logger.debug(
@@ -273,6 +325,7 @@ export class OpenCodeService implements BytebotAgentService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             parts,
+            system: `${systemPrompt}\n\n${customInstructions}`,
             ...(modelPayload ? { model: modelPayload } : {}),
           }),
           signal,

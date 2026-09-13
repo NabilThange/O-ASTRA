@@ -176,17 +176,62 @@ const TOOLS = [
   },
   {
     name: 'open_application',
-    description: 'Directly opens or focuses an application window (e.g. firefox, terminal, vscode, directory, 1password, thunderbird).',
+    description: 'Directly opens or focuses an application window (e.g. firefox, terminal, vscode, directory, mousepad, calculator, evince, paint, calc).',
     inputSchema: {
       type: 'object',
       properties: {
         application: {
           type: 'string',
-          enum: ['firefox', 'terminal', 'vscode', 'directory', '1password', 'thunderbird', 'desktop'],
+          enum: [
+            'firefox',
+            'terminal',
+            'vscode',
+            'directory',
+            'mousepad',
+            'calculator',
+            'evince',
+            'paint',
+            'calc',
+            'desktop',
+            '1password',
+            'thunderbird',
+          ],
           description: 'The application name to launch or activate',
         },
       },
       required: ['application'],
+    },
+  },
+  {
+    name: 'send_email',
+    description:
+      'Sends an email with optional attachments using Resend HTTP API. Attachments should be absolute file paths on the desktop VM (e.g. /home/user/Desktop/report.xlsx).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        to: {
+          type: 'string',
+          description: 'Recipient email address (e.g. user@example.com)',
+        },
+        subject: {
+          type: 'string',
+          description: 'Subject of the email',
+        },
+        body: {
+          type: 'string',
+          description: 'Body text or HTML content of the email',
+        },
+        from: {
+          type: 'string',
+          description: 'Optional sender address. Defaults to RESEND_FROM_EMAIL environment variable or onboarding@resend.dev',
+        },
+        attachments: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional array of absolute file paths inside the desktop VM (e.g. ["/home/user/Desktop/data.xlsx"])',
+        },
+      },
+      required: ['to', 'subject', 'body'],
     },
   },
   {
@@ -489,6 +534,71 @@ async function handleToolCall(name: string, args: any): Promise<any> {
           {
             type: 'text',
             text: `Launched / focused application: "${args.application}".`,
+          },
+        ],
+      };
+    }
+
+    case 'send_email': {
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        throw new Error('RESEND_API_KEY environment variable is not configured.');
+      }
+
+      const fromAddress =
+        args.from || process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+      const toAddress = Array.isArray(args.to) ? args.to : [args.to];
+
+      const emailPayload: any = {
+        from: fromAddress,
+        to: toAddress,
+        subject: args.subject,
+        html: args.body,
+      };
+
+      if (args.attachments && Array.isArray(args.attachments) && args.attachments.length > 0) {
+        const processedAttachments: any[] = [];
+        for (const filePath of args.attachments) {
+          // Fetch file from desktop VM via read_file action
+          const fileData = await callDesktopApi('read_file', {
+            path: filePath,
+          });
+
+          if (!fileData || !fileData.data) {
+            throw new Error(`Failed to read attachment file from desktop at: ${filePath}`);
+          }
+
+          const filename = filePath.split('/').pop() || 'attachment';
+          processedAttachments.push({
+            filename,
+            content: fileData.data, // base64 encoded by desktop API
+          });
+        }
+        emailPayload.attachments = processedAttachments;
+      }
+
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailPayload),
+      });
+
+      if (!resendRes.ok) {
+        const errBody = await resendRes.text();
+        throw new Error(`Resend API error (${resendRes.status}): ${errBody || resendRes.statusText}`);
+      }
+
+      const resendData = await resendRes.json();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Email successfully sent! (Resend ID: ${resendData?.id || 'ok'}, To: ${toAddress.join(', ')}, Subject: "${args.subject}"${
+              args.attachments?.length ? `, Attachments: ${args.attachments.length}` : ''
+            })`,
           },
         ],
       };

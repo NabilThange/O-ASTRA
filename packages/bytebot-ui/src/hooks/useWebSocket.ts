@@ -17,6 +17,8 @@ export function useWebSocket({
 }: UseWebSocketProps = {}) {
   const socketRef = useRef<Socket | null>(null);
   const currentTaskIdRef = useRef<string | null>(null);
+  const callbacksRef = useRef({ onTaskUpdate, onNewMessage, onTaskCreated, onTaskDeleted });
+  callbacksRef.current = { onTaskUpdate, onNewMessage, onTaskCreated, onTaskDeleted };
 
   const connect = useCallback(() => {
     if (socketRef.current?.connected) {
@@ -43,27 +45,27 @@ export function useWebSocket({
 
     socket.on("task_updated", (task: Task) => {
       console.log("Task updated:", task);
-      onTaskUpdate?.(task);
+      callbacksRef.current.onTaskUpdate?.(task);
     });
 
     socket.on("new_message", (message: Message) => {
       console.log("New message:", message);
-      onNewMessage?.(message);
+      callbacksRef.current.onNewMessage?.(message);
     });
 
     socket.on("task_created", (task: Task) => {
       console.log("Task created:", task);
-      onTaskCreated?.(task);
+      callbacksRef.current.onTaskCreated?.(task);
     });
 
     socket.on("task_deleted", (taskId: string) => {
       console.log("Task deleted:", taskId);
-      onTaskDeleted?.(taskId);
+      callbacksRef.current.onTaskDeleted?.(taskId);
     });
 
     socketRef.current = socket;
     return socket;
-  }, [onTaskUpdate, onNewMessage, onTaskCreated, onTaskDeleted]);
+  }, []);
 
   const joinTask = useCallback(
     (taskId: string) => {

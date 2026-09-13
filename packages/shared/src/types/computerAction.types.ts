@@ -3,12 +3,17 @@ export type Button = "left" | "right" | "middle";
 export type Press = "up" | "down";
 export type Application =
   | "firefox"
-  | "1password"
-  | "thunderbird"
   | "vscode"
   | "terminal"
   | "desktop"
-  | "directory";
+  | "directory"
+  | "mousepad"
+  | "calculator"
+  | "evince"
+  | "paint"
+  | "calc"
+  | "1password"
+  | "thunderbird";
 
 // Define individual computer action types
 export type MoveMouseAction = {

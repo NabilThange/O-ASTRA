@@ -16,7 +16,7 @@ export function MessageAvatar({ role }: MessageAvatarProps) {
       <div className={baseClasses}>
         <Image
           src="/bytebot_square_light.svg"
-          alt="Bytebot"
+          alt="Aria"
           width={16}
           height={16}
           className="h-4 w-4"

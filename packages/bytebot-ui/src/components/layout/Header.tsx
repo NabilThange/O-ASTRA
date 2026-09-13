@@ -5,11 +5,11 @@ import { useTheme } from "next-themes";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  DocumentCodeIcon,
   TaskDaily01Icon,
   Home01Icon,
   ComputerIcon,
 } from "@hugeicons/core-free-icons";
+import { Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export function Header() {
@@ -45,27 +45,18 @@ export function Header() {
   return (
     <header className="bg-background flex items-center justify-between border-b p-4">
       <div className="flex items-center gap-6">
-        {/* Logo without link */}
-        <div>
-          {mounted ? (
-            <Image
-              src={
-                resolvedTheme === "dark"
-                  ? "/bytebot_transparent_logo_white.svg"
-                  : "/bytebot_transparent_logo_dark.svg"
-              }
-              alt="Bytebot Logo"
-              width={100}
-              height={30}
-              className="h-8 w-auto"
-            />
-          ) : (
-            <div className="h-8 w-[110px]" />
-          )}
+        {/* Logo / Brand Name */}
+        <div className="flex items-center">
+          <Link
+            href="/home"
+            className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 hover:opacity-90 transition-opacity"
+          >
+            Aria
+          </Link>
         </div>
         <div className="border-bytebot-bronze-dark-11 h-5 border border-l-[0.5px]"></div>
         <div className="flex items-center gap-2">
-          <Link href="/" className={getLinkClasses("/")}>
+          <Link href="/home" className={getLinkClasses("/home")}>
             <HugeiconsIcon icon={Home01Icon} className="h-4 w-4" />
             <span className="text-sm">Home</span>
           </Link>
@@ -77,15 +68,11 @@ export function Header() {
             <HugeiconsIcon icon={ComputerIcon} className="h-4 w-4" />
             <span className="text-sm">Desktop</span>
           </Link>
-          <Link
-            href="https://docs.bytebot.ai/quickstart"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={getLinkClasses("https://docs.bytebot.ai")}
-          >
-            <HugeiconsIcon icon={DocumentCodeIcon} className="h-4 w-4" />
-            <span className="text-sm">Docs</span>
+          <Link href="/" className={getLinkClasses("/")}>
+            <Sparkles className="h-4 w-4" />
+            <span className="text-sm">Landing</span>
           </Link>
+
         </div>
       </div>
       <div className="flex items-center gap-3"></div>

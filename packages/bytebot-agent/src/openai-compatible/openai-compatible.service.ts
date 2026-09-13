@@ -76,7 +76,7 @@ export class OpenAICompatibleService implements BytebotAgentService {
 
     if (baseURL.includes('openrouter.ai')) {
       headers['HTTP-Referer'] = 'https://bytebot.ai';
-      headers['X-Title'] = 'Bytebot';
+      headers['X-Title'] = 'Aria';
     }
 
     return headers;

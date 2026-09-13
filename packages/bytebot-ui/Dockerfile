@@ -16,14 +16,14 @@ WORKDIR /app
 COPY ./shared ./shared
 COPY ./bytebot-ui/ ./bytebot-ui
 
+# Build shared first
+WORKDIR /app/shared
+RUN npm install && npm run build
+
+# Build bytebot-ui
 WORKDIR /app/bytebot-ui
-
-# Install dependencies
 RUN npm install
-
 RUN npm run build
 
 # Run the application
-CMD ["npm", "run", "start"] 
-
-
+CMD ["npm", "run", "start"]

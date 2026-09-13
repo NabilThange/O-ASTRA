@@ -34,4 +34,9 @@ export enum ApplicationName {
   TERMINAL = 'terminal',
   DESKTOP = 'desktop',
   DIRECTORY = 'directory',
+  MOUSEPAD = 'mousepad',
+  CALCULATOR = 'calculator',
+  EVINCE = 'evince',
+  PAINT = 'paint',
+  CALC = 'calc',
 }

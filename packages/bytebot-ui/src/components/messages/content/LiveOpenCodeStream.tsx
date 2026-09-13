@@ -92,11 +92,11 @@ export function LiveOpenCodeStream({ sessionId }: LiveOpenCodeStreamProps) {
             <TextShimmer className="text-sm font-medium text-bytebot-bronze-dark-8" duration={2}>
               {isStreaming
                 ? activeTools.some((t) => t.state === "running")
-                  ? "Bytebot is executing desktop actions..."
+                  ? "Aria is executing desktop actions..."
                   : streamedReasoning && !streamedText
-                    ? "Bytebot is thinking..."
-                    : "Bytebot is responding..."
-                : "Bytebot is working..."}
+                    ? "Aria is thinking..."
+                    : "Aria is responding..."
+                : "Aria is working..."}
             </TextShimmer>
           </div>
 

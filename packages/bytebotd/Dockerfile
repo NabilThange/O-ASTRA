@@ -26,10 +26,10 @@ RUN apt-get update && apt-get install -y \
     lightdm \
     # Development tools
     python3 python3-pip curl wget git vim \
-    # Utilities
-    supervisor netcat-openbsd \
-    # Applications
-    xpdf gedit xpaint \
+    # Utilities & automation tools
+    supervisor netcat-openbsd xdotool xclip scrot \
+    # Standard desktop applications
+    mousepad gnome-calculator evince eog kolourpaint file-roller libreoffice-calc \
     # Libraries
     libxtst-dev \
     # Remove unneeded dependencies
@@ -61,61 +61,22 @@ RUN apt-get update && apt-get install -y \
     fonts-freefont-ttf \
     && add-apt-repository -y ppa:mozillateam/ppa \
     && apt-get update \
-    && apt-get install -y firefox-esr thunderbird \
+    && apt-get install -y firefox-esr \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     # Set Firefox as default browser system-wide
     && update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/bin/firefox-esr 200 \
     && update-alternatives --set x-www-browser /usr/bin/firefox-esr \
     && fc-cache -f -v
 
-
-# Install 1Password based on architecture
-RUN ARCH=$(dpkg --print-architecture) && \
-    if [ "$ARCH" = "amd64" ]; then \
-        # Install from APT repository for AMD64
-        curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
-        gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg && \
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main" | \
-        tee /etc/apt/sources.list.d/1password.list && \
-        mkdir -p /etc/debsig/policies/AC2D62742012EA22/ && \
-        curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol | \
-        tee /etc/debsig/policies/AC2D62742012EA22/1password.pol && \
-        mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22 && \
-        curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
-        gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg && \
-        apt-get update && apt-get install -y 1password && \
-        apt-get clean && rm -rf /var/lib/apt/lists/*; \
-    elif [ "$ARCH" = "arm64" ]; then \
-        # Install from tar.gz for ARM64
-        apt-get update && apt-get install -y \
-            libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils \
-            libatspi2.0-0 libdrm2 libgbm1 libxcb-dri3-0 libxkbcommon0 \
-            libsecret-1-0 && \
-        apt-get clean && rm -rf /var/lib/apt/lists/* && \
-        curl -sSL https://downloads.1password.com/linux/tar/beta/aarch64/1password-latest.tar.gz -o /tmp/1password.tar.gz && \
-        # Extract the full 1Password bundle so libraries like libffmpeg.so remain in their expected relative paths
-        mkdir -p /opt/1password && \
-        tar -xzf /tmp/1password.tar.gz -C /opt/1password --strip-components=1 && \
-        # Link the main executable into the global PATH
-        ln -sf /opt/1password/1password /usr/bin/1password && \
-        chmod +x /opt/1password/1password && \
-        # Copy icons to standard locations
-        mkdir -p /usr/share/pixmaps /usr/share/icons/hicolor/512x512/apps /usr/share/icons/hicolor/256x256/apps && \
-        find /opt/1password -name "*1password*.png" -o -name "*1password*.svg" | while read icon; do \
-            if [[ "$icon" == *"512"* ]]; then \
-                cp "$icon" /usr/share/icons/hicolor/512x512/apps/1password.png 2>/dev/null || true; \
-            elif [[ "$icon" == *"256"* ]]; then \
-                cp "$icon" /usr/share/icons/hicolor/256x256/apps/1password.png 2>/dev/null || true; \
-            fi; \
-            cp "$icon" /usr/share/pixmaps/1password.png 2>/dev/null || true; \
-        done && \
-        # Clean up temporary files
-        rm -rf /tmp/1password.tar.gz && \
-        # Update icon cache
-        gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true; \
-    else \
-        echo "1Password is not available for $ARCH architecture."; \
-    fi
+# Install Google Chrome & PinchTab for headed agent browser automation
+RUN curl -fsSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o /tmp/chrome.deb \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends /tmp/chrome.deb \
+    && rm -f /tmp/chrome.deb \
+    && curl -fsSL https://github.com/pinchtab/pinchtab/releases/latest/download/pinchtab-linux-amd64 -o /usr/local/bin/pinchtab \
+    && chmod +x /usr/local/bin/pinchtab \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Visual Studio Code
 RUN ARCH=$(dpkg --print-architecture) && \
@@ -141,8 +102,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip3 install --upgrade pip
+# Upgrade pip & install Python automation libraries (spreadsheet & email handling)
+RUN pip3 install --upgrade pip \
+    && pip3 install --no-cache-dir pandas openpyxl requests
 
 # -----------------------------------------------------------------------------
 # 4. VNC and remote access setup
@@ -227,13 +189,15 @@ RUN chown -R user:user /home/user
 RUN chmod -R 755 /home/user
 
 RUN mkdir -p /home/user/Desktop && \
-    cp -f /usr/share/applications/firefox.desktop /home/user/Desktop/ && \
-    cp -f /usr/share/applications/thunderbird.desktop /home/user/Desktop/ && \
-    cp -f /usr/share/applications/1password.desktop /home/user/Desktop/ && \
-    cp -f /usr/share/applications/code.desktop /home/user/Desktop/ && \
-    cp -f /usr/share/applications/terminal.desktop /home/user/Desktop/ && \
-    chmod +x /home/user/Desktop/*.desktop && \
-    chown user:user /home/user/Desktop/*.desktop
+    cp -f /usr/share/applications/firefox.desktop /home/user/Desktop/ 2>/dev/null || true; \
+    cp -f /usr/share/applications/code.desktop /home/user/Desktop/ 2>/dev/null || true; \
+    cp -f /usr/share/applications/terminal.desktop /home/user/Desktop/ 2>/dev/null || true; \
+    cp -f /usr/share/applications/mousepad.desktop /home/user/Desktop/ 2>/dev/null || true; \
+    cp -f /usr/share/applications/org.gnome.Calculator.desktop /home/user/Desktop/ 2>/dev/null || true; \
+    cp -f /usr/share/applications/libreoffice-calc.desktop /home/user/Desktop/ 2>/dev/null || true; \
+    cp -f /usr/share/applications/org.kde.kolourpaint.desktop /home/user/Desktop/ 2>/dev/null || true; \
+    chmod +x /home/user/Desktop/*.desktop 2>/dev/null || true; \
+    chown user:user /home/user/Desktop/*.desktop 2>/dev/null || true
 
 RUN mkdir -p /home/user/.config /home/user/.local/share /home/user/.cache \
     && chown -R user:user /home/user/.config /home/user/.local /home/user/.cache

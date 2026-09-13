@@ -1,241 +1,68 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Header } from "@/components/layout/Header";
-import { AuraBot } from "@/components/aura/AuraBot";
-import { ChatInput } from "@/components/messages/ChatInput";
-import { useRouter } from "next/navigation";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { startTask } from "@/utils/taskUtils";
-import { Model } from "@/types";
-import { TaskList } from "@/components/tasks/TaskList";
+import React, { useEffect } from "react";
+import Link from "next/link";
+import { ClientOnly } from "@/components/aria/ClientOnly";
+import "./landing/landing.css";
 
-interface FileWithBase64 {
-  name: string;
-  base64: string;
-  type: string;
-  size: number;
-}
+// Import components directly
+import Preloader from "@/components/aria/Preloader/Preloader";
+import { AriaLayout } from "@/components/aria/AriaLayout";
+import Hero from "@/components/aria/Hero/Hero";
+import Welcome from "@/components/aria/Welcome/Welcome";
+import Choose from "@/components/aria/Choose/Choose";
+import Gallery from "@/components/aria/Gallery/Gallery";
+import Feedback from "@/components/aria/Feedback/Feedback";
+import FooterBanner from "@/components/aria/FooterBanner/FooterBanner";
+import Footer from "@/components/aria/Footer/Footer";
+import FooterTitle from "@/components/aria/Footer/FooterTitle";
 
-export default function Home() {
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [models, setModels] = useState<Model[]>([]);
-  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<FileWithBase64[]>([]);
-  const [isTaskInputFocused, setIsTaskInputFocused] = useState(false);
-  const router = useRouter();
-  const [activePopoverIndex, setActivePopoverIndex] = useState<number | null>(
-    null,
-  );
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const buttonsRef = useRef<HTMLDivElement>(null);
-
+export default function RootLandingPage() {
   useEffect(() => {
-    fetch("/api/tasks/models")
-      .then((res) => res.json())
-      .then((data) => {
-        setModels(data);
-        if (data.length > 0) setSelectedModel(data[0]);
-      })
-      .catch((err) => console.error("Failed to load models", err));
+    // Refresh ScrollTrigger after initial mount and animations settle
+    if (typeof window !== "undefined") {
+      const timer = setTimeout(() => {
+        import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
+          ScrollTrigger.refresh();
+        });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
-  // Close popover when clicking outside or pressing ESC
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node) &&
-        buttonsRef.current &&
-        !buttonsRef.current.contains(event.target as Node)
-      ) {
-        setActivePopoverIndex(null);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setActivePopoverIndex(null);
-      }
-    };
-
-    if (activePopoverIndex !== null) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [activePopoverIndex]);
-
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    setIsLoading(true);
-
-    try {
-      if (!selectedModel) throw new Error("No model selected");
-      // Send request to start a new task
-      const taskData: {
-        description: string;
-        model: Model;
-        files?: FileWithBase64[];
-      } = {
-        description: input,
-        model: selectedModel,
-      };
-
-      // Include files if any are uploaded
-      if (uploadedFiles.length > 0) {
-        taskData.files = uploadedFiles;
-      }
-
-      const task = await startTask(taskData);
-
-      if (task && task.id) {
-        // Redirect to the task page
-        router.push(`/tasks/${task.id}`);
-      } else {
-        // Handle error
-        console.error("Failed to create task");
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleFileUpload = (files: FileWithBase64[]) => {
-    setUploadedFiles(files);
-  };
-
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <Header />
-
-      <main className="flex flex-1 flex-col overflow-hidden">
-        {/* Desktop grid layout (50/50 split) - only visible on large screens */}
-        <div className="hidden h-full p-8 lg:grid lg:grid-cols-2 lg:gap-8">
-          {/* Main content area */}
-          <div className="flex flex-col items-center overflow-y-auto">
-            <div className="flex w-full max-w-xl flex-col items-center">
-              <div className="mb-6 flex w-full flex-col items-start justify-start">
-                <h1 className="text-bytebot-bronze-light-12 mb-1 text-2xl">
-                  What can I help you get done?
-                </h1>
-              </div>
-
-              <div className="bg-bytebot-bronze-light-2 border-bytebot-bronze-light-7 mb-10 w-full rounded-2xl border p-2">
-                <ChatInput
-                  input={input}
-                  isLoading={isLoading}
-                  onInputChange={setInput}
-                  onSend={handleSend}
-                  onFileUpload={handleFileUpload}
-                  onFocusChange={setIsTaskInputFocused}
-                  minLines={3}
-                />
-                <div className="mt-2">
-                  <Select
-                    value={selectedModel?.name}
-                    onValueChange={(val) =>
-                      setSelectedModel(
-                        models.find((m) => m.name === val) || null,
-                      )
-                    }
-                  >
-                    <SelectTrigger className="w-auto">
-                      <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {models.map((m) => (
-                        <SelectItem key={m.name} value={m.name}>
-                          {m.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <TaskList
-                className="w-full"
-                title="Latest Tasks"
-                description="You'll see tasks that are completed, scheduled, or require your attention."
-              />
-            </div>
+    <ClientOnly>
+      <div
+        className="landing-page-wrapper"
+        style={{
+          backgroundColor: "#181717",
+          minHeight: "100vh",
+          width: "100%",
+          position: "relative",
+          overflowX: "hidden",
+        }}
+      >
+        <Preloader />
+        <AriaLayout>
+          <div className="fixed top-8 right-4 z-40">
+            <Link
+              href="/home"
+              className="bg-bytebot-bronze-light-12 text-bytebot-bronze-light-1 px-6 py-3 rounded-full hover:bg-bytebot-bronze-light-11 transition-colors font-medium shadow-lg"
+            >
+              Launch Aria
+            </Link>
           </div>
 
-          {/* Aura Bot area - centered in its grid cell */}
-          <div className="flex items-center justify-center px-6 pt-6">
-            <div className="flex aspect-square h-full w-full max-w-md items-center justify-center xl:max-w-2xl">
-              <AuraBot isTaskInputFocused={isTaskInputFocused} />
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile layout - only visible on small/medium screens */}
-        <div className="flex h-full flex-col lg:hidden">
-          <div className="flex flex-1 flex-col items-center overflow-y-auto px-4 pt-10">
-            <div className="flex w-full max-w-xl flex-col items-center pb-10">
-              <div className="mb-6 flex w-full flex-col items-start justify-start">
-                <h1 className="text-bytebot-bronze-light-12 mb-1 text-2xl">
-                  What can I help you get done?
-                </h1>
-              </div>
-
-              <div className="bg-bytebot-bronze-light-2 border-bytebot-bronze-light-5 borderw-full mb-10 rounded-2xl p-2">
-                <ChatInput
-                  input={input}
-                  isLoading={isLoading}
-                  onInputChange={setInput}
-                  onSend={handleSend}
-                  onFileUpload={handleFileUpload}
-                  onFocusChange={setIsTaskInputFocused}
-                  minLines={3}
-                />
-                <div className="mt-2">
-                  <Select
-                    value={selectedModel?.name}
-                    onValueChange={(val) =>
-                      setSelectedModel(
-                        models.find((m) => m.name === val) || null,
-                      )
-                    }
-                  >
-                    <SelectTrigger className="w-auto">
-                      <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {models.map((m) => (
-                        <SelectItem key={m.name} value={m.name}>
-                          {m.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <TaskList
-                className="w-full"
-                title="Latest Tasks"
-                description="You'll see tasks that are completed, scheduled, or require your attention."
-              />
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+          <Hero />
+          <Welcome />
+          <Choose />
+          <Gallery />
+          <Feedback />
+          <FooterBanner />
+          <Footer />
+          <FooterTitle />
+        </AriaLayout>
+      </div>
+    </ClientOnly>
   );
 }

@@ -13,8 +13,10 @@ const hostname = process.env.HOSTNAME || "localhost";
 const port = parseInt(process.env.PORT || "9992", 10);
 
 // Backend URLs
-const BYTEBOT_AGENT_BASE_URL = process.env.BYTEBOT_AGENT_BASE_URL;
-const BYTEBOT_DESKTOP_VNC_URL = process.env.BYTEBOT_DESKTOP_VNC_URL;
+const BYTEBOT_AGENT_BASE_URL =
+  process.env.BYTEBOT_AGENT_BASE_URL || "http://localhost:9991";
+const BYTEBOT_DESKTOP_VNC_URL =
+  process.env.BYTEBOT_DESKTOP_VNC_URL || "ws://localhost:9990/websockify";
 
 const app = next({ dev, hostname, port });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { ChatContainer } from "@/components/messages/ChatContainer";
 import { DesktopContainer } from "@/components/ui/desktop-container";
@@ -21,13 +21,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { VirtualDesktopStatus } from "@/components/VirtualDesktopStatusHeader";
+import { MessageSquareText, X } from "lucide-react";
+import { useVoiceAgentContext } from "@/providers/VoiceAgentProvider";
 
 export default function TaskPage() {
   const params = useParams();
   const router = useRouter();
   const taskId = params.id as string;
+  const { attachTask, dispatchInstruction } = useVoiceAgentContext();
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [showLogsDrawer, setShowLogsDrawer] = useState(true);
+
   const {
     messages,
     groupedMessages,
@@ -40,13 +45,24 @@ export default function TaskPage() {
     isLoadingMoreMessages,
     hasMoreMessages,
     loadMoreMessages,
-    handleAddMessage,
     handleTakeOverTask,
     handleResumeTask,
     handleCancelTask,
     currentTaskId,
     openCodeSessionId,
   } = useChatSession({ initialTaskId: taskId });
+
+  useEffect(() => {
+    if (currentTaskId) attachTask(currentTaskId, taskStatus, openCodeSessionId);
+  }, [attachTask, currentTaskId, openCodeSessionId, taskStatus]);
+
+  const handleSharedAddMessage = useCallback(async () => {
+    const message = input.trim();
+    if (!message) return;
+    setInput("");
+    await dispatchInstruction(message);
+  }, [dispatchInstruction, input, setInput]);
+
 
   // Determine if task is inactive (show screenshot) or active (show VNC)
   function isTaskInactive(): boolean {
@@ -118,16 +134,17 @@ export default function TaskPage() {
   }, [currentTaskId, taskId, router]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#F9F9F8]">
       <Header />
 
-      <main className="m-2 flex-1 overflow-hidden px-2 py-4">
-        <div className="grid h-full grid-cols-7 gap-4">
-          {/* Main container */}
-          <div className="col-span-4">
+      <main className="relative flex flex-1 flex-col lg:flex-row overflow-hidden p-2 sm:p-4 gap-3">
+        {/* Main Desktop Container */}
+        <div className="relative flex h-full w-full flex-1 flex-col items-center justify-center overflow-hidden">
+          <div className="flex h-full w-full items-center justify-center">
             <DesktopContainer
               screenshot={isTaskInactive() ? currentScreenshot : null}
               viewOnly={vncViewOnly()}
+              className="shadow-sm rounded-xl border border-neutral-200"
               status={
                 (() => {
                   if (
@@ -141,7 +158,6 @@ export default function TaskPage() {
                   if (taskStatus === TaskStatus.FAILED) return "failed";
                   if (taskStatus === TaskStatus.CANCELLED) return "canceled";
                   if (taskStatus === TaskStatus.COMPLETED) return "completed";
-                  // You may want to add a scheduled state if you have that info
                   return "pending";
                 })() as VirtualDesktopStatus
               }
@@ -154,7 +170,7 @@ export default function TaskPage() {
                   icon={
                     <HugeiconsIcon
                       icon={WavingHand01Icon}
-                      className="h-5 w-5"
+                      className="h-4 w-4"
                     />
                   }
                 >
@@ -166,13 +182,25 @@ export default function TaskPage() {
                   Proceed
                 </Button>
               )}
+
+              {/* Secondary Drawer Toggle for typing or logs */}
+              <Button
+                onClick={() => setShowLogsDrawer((prev) => !prev)}
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs text-neutral-600"
+              >
+                <MessageSquareText className="h-3.5 w-3.5" />
+                <span>{showLogsDrawer ? "Hide Log" : "Log / Type"}</span>
+              </Button>
+
               {canCancel() && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon">
+                    <Button variant="outline" size="icon" className="h-8 w-8">
                       <HugeiconsIcon
                         icon={MoreVerticalCircle01Icon}
-                        className="text-bytebot-bronze-light-11 h-5 w-5"
+                        className="text-neutral-500 h-4 w-4"
                       />
                     </Button>
                   </DropdownMenuTrigger>
@@ -189,12 +217,28 @@ export default function TaskPage() {
             </DesktopContainer>
           </div>
 
-          {/* Chat Area */}
-          <div className="col-span-3 flex h-full min-h-0 flex-col">
-            {/* Messages scrollable area */}
+        </div>
+
+        {/* Side-by-side or Slide-out Panel for Detailed Message History & Keyboard Input */}
+        {showLogsDrawer && (
+          <div className="absolute lg:relative inset-y-0 right-0 z-40 flex w-full lg:w-[480px] xl:w-[520px] 2xl:w-[560px] flex-col border border-neutral-200 bg-white rounded-xl shadow-2xl lg:shadow-sm animate-in slide-in-from-right duration-300 flex-shrink-0 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
+              <div className="text-sm font-semibold text-neutral-800">
+                Task Activity & History
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full"
+                onClick={() => setShowLogsDrawer(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
             <div
               ref={chatContainerRef}
-              className="hide-scrollbar min-h-0 flex-1 overflow-scroll px-4"
+              className="hide-scrollbar min-h-0 flex-1 overflow-scroll px-4 py-2"
             >
               <ChatContainer
                 scrollRef={chatContainerRef}
@@ -204,7 +248,7 @@ export default function TaskPage() {
                 input={input}
                 setInput={setInput}
                 isLoading={isLoading}
-                handleAddMessage={handleAddMessage}
+                handleAddMessage={handleSharedAddMessage}
                 groupedMessages={groupedMessages}
                 taskStatus={taskStatus}
                 control={control}
@@ -215,7 +259,7 @@ export default function TaskPage() {
               />
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
